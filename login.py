@@ -35,6 +35,27 @@ rand:sjrand
 POST 帐号密码: https://kyfw.12306.cn/passport/web/login
 login 验证结果
     登录名不存在  result_code:1
+
+登陆成功后:
+POST userLogin: https://kyfw.12306.cn/otn/login/userLogin
+request Headers [Referer:https://kyfw.12306.cn/otn/login/init]
+参数:
+_json_att:
+
+POST uamtk: https://kyfw.12306.cn/passport/web/auth/uamtk
+request Headers [Referer:https://kyfw.12306.cn/otn/passport?redirect=/otn/login/userLogin]
+参数:
+appid:otn
+
+POST uamauthclient: https://kyfw.12306.cn/otn/uamauthclient
+request Headers [Referer:https://kyfw.12306.cn/otn/passport?redirect=/otn/login/userLogin]
+参数:
+tk:UV5AG4BN2u9zna6l5QHTQws_Ft2THVB4kot2t0
+
+GET userLogin: https://kyfw.12306.cn/otn/login/userLogin
+request Headers [Referer:https://kyfw.12306.cn/otn/passport?redirect=/otn/login/userLogin]
+
+
 """
 
 from urllib import request, parse
