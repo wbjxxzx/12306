@@ -61,12 +61,11 @@ request Headers [Referer:https://kyfw.12306.cn/otn/passport?redirect=/otn/login/
 
 from urllib import request, parse
 from http import cookiejar
-from requests import cookies
 from collections import namedtuple
 from PIL import Image
-from multiprocessing import Process, Queue
-import json, random, ssl, tempfile, os, time
-import my12306
+import subprocess
+import json, random, ssl, tempfile, os, time, sys, re
+import myInfo
 import logging;logging.basicConfig(level=logging.DEBUG)
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -80,19 +79,20 @@ class MyHTTPRedirectHandler(request.HTTPRedirectHandler):
         logging.debug(httpmsg)
         return request.HTTPRedirectHandler.http_error_302(self, req, fp, code, msg, httpmsg)
 
-class Browser(object):
-    # _cj = cookiejar.LWPCookieJar()
-    _cj = cookies.RequestsCookieJar()
+class My12306(object):
+    _cj = cookiejar.LWPCookieJar()
     _opener = request.build_opener(request.HTTPCookieProcessor(_cj))
-    _headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) \
-            AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36",
-        "Host":       "kyfw.12306.cn",
-        "X-Requested-With": "XMLHttpRequest",
-        "Connection": "keep-alive",
-    }
 
     def __init__(self):
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) \
+                AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36",
+            "Host":       "kyfw.12306.cn",
+            "X-Requested-With": "XMLHttpRequest",
+            "Connection": "keep-alive",
+        }
+        self.cookie = {"Cookie": ""}
+        self.token = ""
         self._captchaImg = "https://kyfw.12306.cn/passport/captcha/captcha-image"
         self._captchaChk = "https://kyfw.12306.cn/passport/captcha/captcha-check"
         self._loginURL   = "https://kyfw.12306.cn/passport/web/login"
@@ -117,14 +117,14 @@ class Browser(object):
         if data is not None: 
             url = url + "?" + data
         logging.debug("GET: [{}]".format(url))
-        req = request.Request(url, headers=Browser._headers)
-        with Browser._opener.open(req) as f:
+        req = request.Request(url, headers=self.headers)
+        with My12306._opener.open(req) as f:
             return f.status, f.read()
 
     def doPOST(self, url, data):
-        req = request.Request(url, headers=Browser._headers)
+        req = request.Request(url, headers=self.headers)
         logging.debug("POST: [{}] ,data [{}]".format(url, data))
-        with Browser._opener.open(req, data=data.encode("utf-8")) as f:
+        with My12306._opener.open(req, data=data.encode("utf-8")) as f:
             return f.status, f.read()
 
     def getCaptchaImg(self):
@@ -145,20 +145,26 @@ class Browser(object):
         logging.info("retCode:{}".format(retCode))
         
         if retCode == 200:
-            fpath = os.path.join(self._tmp, "captcha.png")
-            logging.info("保存图片为:{}".format(fpath))
-            with open(fpath, "wb") as fw:
+            png = os.path.join(self._tmp, "captcha.png")
+            logging.info("保存图片为:{}".format(png))
+            with open(png, "wb") as fw:
                 fw.write(retData)
         try:
-            img = Image.open(fpath)
+            img = Image.open(png)
             img.show()
         except:
             raise "未获取到验证码，请重新获取"
 
     def getPosInfo(self):
-        posInput = input("""请输入图片位置,如 1,3,6:\n1|2|3|4\n5|6|7|8\n以逗号分隔(默认为1):\n""")
-        if len(posInput) == 0 :
-            posInput = "1"
+        validInput = False
+        while not validInput:
+            posInput = input("""请输入图片位置,如 1,3,6:\n1|2|3|4\n5|6|7|8\n以逗号分隔(默认为1):\n""")
+            if len(posInput) == 0 :
+                posInput = "1"
+                validInput = True
+            else:
+                if re.match(r"[1-8](?:,[1-8])*", posInput):
+                    validInput = True
         posList = []
         for pos in posInput.strip().split(","):
             posList.append(random.randint(self._posMap[pos][0].a, self._posMap[pos][0].b))
@@ -167,9 +173,8 @@ class Browser(object):
         
 
     def checkCaptcha(self):
-        result = {}
-        result["result_code"] = "5"
-        while result["result_code"] != "4":
+        ok = False
+        while not ok:
             self.getCaptchaImg()
             posInfo = self.getPosInfo()
             captchaForm = {
@@ -184,8 +189,9 @@ class Browser(object):
                 try:
                     result = json.loads(retData.decode("utf-8"))
                     logging.info("retData:[{}]".format(result))
+                    ok = True
                 except:
-                    result["result_code"] = "5"
+                    pass
         logging.info("验证码校验成功, 尝试登陆")
 
     def doLogin2(self, user="12306", passwd="123456"):
@@ -195,7 +201,7 @@ class Browser(object):
             "appid": "otn",
         }
         logging.debug(loginForm)
-        logging.debug(Browser._cj)
+        logging.debug(My12306._cj)
         retCode, retData = self.doPOST(self._loginURL, parse.urlencode(loginForm))
         if retCode == 200:
             logging.debug(retData.decode("utf-8"))
@@ -203,7 +209,7 @@ class Browser(object):
                 result = json.loads(retData.decode("utf-8"))
             except json.decoder.JSONDecodeError as e:
                 logging.error("json parse failed: {}".format(e))
-        logging.debug("cookie:[{}]".format(Browser._cj))
+        logging.debug("cookie:[{}]".format(My12306._cj))
         retCode, retData = self.doPOST("https://kyfw.12306.cn/otn/login/userLogin", parse.urlencode({"_json_att":""}))
         logging.info("retCode:{}".format(retCode))
         retCode, retData = self.doPOST("https://kyfw.12306.cn/passport/web/auth/uamtk", parse.urlencode({"appid":"otn"}))
@@ -216,15 +222,14 @@ class Browser(object):
             "appid": "otn",
         }
         logging.debug(loginForm)
-        cookie = "; ".join(k + "=" + v for k, v in Browser._cj.iteritems())
-        result = {}
-        result["result_code"] = "5"
-        while result["result_code"] != 0:
+        self.cookie["Cookie"] = "; ".join(item.name + "=" + item.value for item in My12306._cj)
+        
+        ok = False
+        while not ok:
             opener = request.build_opener(MyHTTPRedirectHandler)
-            headers = Browser._headers
-            headers["Cookie"] = cookie
+            self.headers["Cookie"] = self.cookie["Cookie"]
             # headers["Referer"] = "https://kyfw.12306.cn/otn/login/init"
-            req = request.Request(self._loginURL, headers=headers)
+            req = request.Request(self._loginURL, headers=self.headers)
             with opener.open(req, data=parse.urlencode(loginForm).encode("utf-8") ) as f:
                 logging.info("retCode:{}".format(f.status))
                 retData = f.read()
@@ -233,15 +238,16 @@ class Browser(object):
                     try:
                         result = json.loads(retData.decode("utf-8"))
                         logging.info("登陆成功, 可以买票了")
+                        ok = True
                     except json.decoder.JSONDecodeError as e:
                         logging.error("json parse failed: {}".format(e))
                         time.sleep(2)
-        # logging.debug("cookie:[{}]".format(Browser._cj))
+        
 
 
 
 if __name__ == "__main__":
-    bwr = Browser()
-    bwr.checkCaptcha()
-    bwr.doLogin(my12306.user, my12306.passwd)
+    my12306 = My12306()
+    my12306.checkCaptcha()
+    my12306.doLogin(myInfo.user, myInfo.passwd)
     
