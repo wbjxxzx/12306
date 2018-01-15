@@ -6,7 +6,7 @@ from datetime import datetime
 from pprint import pprint
 import sys
 import json, re, time
-import logging;logging.basicConfig(level=logging.DEBUG)
+import logging;logging.basicConfig(level=logging.DEBUG, filename="12306.log")
 from login import My12306
 import myInfo
 
@@ -176,11 +176,23 @@ query_to_station_name:武汉
 undefined:
 """
 def checkUser(browser):
+    logging.info("验证用户是否已登陆...")
     data = {"_json_att": ""}
     retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/login/checkUser", parse.urlencode(data))
     logging.info("retCode:[{}]".format(retCode))
+    if retCode == 200:
+        logging.debug("retCode:[{}], retData:[{}]".format(retCode, retData.decode("utf-8")))
+        try:
+            result = json.loads(retData.decode("utf-8"))
+            if result["data"]["flag"] == True:
+                logging.info("验证通过，用户已登录")
+            else:
+                logging.info("登陆信息过期，请重新登录")
+        except:
+            pass
 
 def submitOrderRequest(browser, train):
+    logging.info("确认购票信息...")
     back_date = datetime.strftime(datetime.now(), "%Y-%m-%d")
     wantTrainInfo = train["data"]["result"][0].split("|")
     data = {
@@ -196,6 +208,12 @@ def submitOrderRequest(browser, train):
     retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/leftTicket/submitOrderRequest",
         parse.urlencode(data))
     logging.info("retCode:[{}]".format(retCode))
+    if retCode == 200:
+        try:
+            result = json.loads(retData.decode("utf-8"))
+            logging.info("retData: [{}]".format(result))
+        except:
+            pass
 """
 POST initDc https://kyfw.12306.cn/otn/confirmPassenger/initDc
 _json_att:
@@ -264,7 +282,7 @@ cancel_flag:2
 bed_level_order_num:000000000000000000000000000000
 passengerTicketStr:O,0,1,张三,1,身份证号码,电话号码,N
 oldPassengerStr:张三,1,身份证号码,1_
-tour_flag:dc
+tour_flag:dc  # dc: 单程
 randCode:
 whatsSelect:1
 _json_att:
@@ -276,24 +294,24 @@ REPEAT_SUBMIT_TOKEN:41ccc1848d24018ea59ea2534dcb6ef6
 "messages":[],"validateMessages":{}}
 """
 def checkOrderInfo(browser, passengerInfo):
-    myself = passengerInfo["normal_passengers"][0]
+    myself = passengerInfo["data"]["normal_passengers"][0]
     # "passengerTicketStr": "O,0,1,张三,1,身份证号码,电话号码,N",
     passengerAttrList = []
-    passengerAttrList.append["O"]
-    passengerAttrList.append[myself["passenger_flag"]]
-    passengerAttrList.append[myself["passenger_type"]]
-    passengerAttrList.append[myself["passenger_name"]]
-    passengerAttrList.append[myself["passenger_id_type_code"]]
-    passengerAttrList.append[myself["passenger_id_no"]]
-    passengerAttrList.append[myself["mobile_no"]]
-    passengerAttrList.append["N"]
+    passengerAttrList.append("O")
+    passengerAttrList.append(myself["passenger_flag"])
+    passengerAttrList.append(myself["passenger_type"])
+    passengerAttrList.append(myself["passenger_name"])
+    passengerAttrList.append(myself["passenger_id_type_code"])
+    passengerAttrList.append(myself["passenger_id_no"])
+    passengerAttrList.append(myself["mobile_no"])
+    passengerAttrList.append("N")
 
     # "oldPassengerStr": "张三,1,身份证号码,1_",
     oldPassengerAttrList = []
-    oldPassengerAttrList.append[myself["passenger_name"]]
-    oldPassengerAttrList.append[myself["passenger_id_type_code"]]
-    oldPassengerAttrList.append[myself["passenger_id_no"]]
-    oldPassengerAttrList.append[myself["1_"]]
+    oldPassengerAttrList.append(myself["passenger_name"])
+    oldPassengerAttrList.append(myself["passenger_id_type_code"])
+    oldPassengerAttrList.append(myself["passenger_id_no"])
+    oldPassengerAttrList.append("1_")
      
     postData = {
         "cancel_flag": "2",
@@ -309,6 +327,12 @@ def checkOrderInfo(browser, passengerInfo):
     retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/confirmPassenger/checkOrderInfo", 
             parse.urlencode(postData))
     logging.info("retCode:[{}]".format(retCode))
+    if retCode == 200:
+        try:
+            result = json.loads(retData.decode("utf-8"))
+            logging.info("返回车次座位信息: [{}]".format(result))
+        except:
+            pass
 
 """
 POST 抢票队列: https://kyfw.12306.cn/otn/confirmPassenger/getQueueCount
@@ -343,6 +367,12 @@ def getQueueCount(browser, train):
     retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/confirmPassenger/getQueueCount", 
             parse.urlencode(postData))
     logging.info("retCode:[{}]".format(retCode))
+    if retCode == 200:
+        try:
+            result = json.loads(retData.decode("utf-8"))
+            logging.info("抢票队列: [{}]".format(result))
+        except:
+            pass
 
 
 
@@ -365,24 +395,24 @@ REPEAT_SUBMIT_TOKEN:41ccc1848d24018ea59ea2534dcb6ef6
 """
 def confirmSingleForQueue(browser, passengerInfo, train):
     wantTrainInfo = train["data"]["result"][0].split("|")
-    myself = passengerInfo["normal_passengers"][0]
+    myself = passengerInfo["data"]["normal_passengers"][0]
     # "passengerTicketStr": "O,0,1,张三,1,身份证号码,电话号码,N",
     passengerAttrList = []
-    passengerAttrList.append["O"]
-    passengerAttrList.append[myself["passenger_flag"]]
-    passengerAttrList.append[myself["passenger_type"]]
-    passengerAttrList.append[myself["passenger_name"]]
-    passengerAttrList.append[myself["passenger_id_type_code"]]
-    passengerAttrList.append[myself["passenger_id_no"]]
-    passengerAttrList.append[myself["mobile_no"]]
-    passengerAttrList.append["N"]
+    passengerAttrList.append("O")
+    passengerAttrList.append(myself["passenger_flag"])
+    passengerAttrList.append(myself["passenger_type"])
+    passengerAttrList.append(myself["passenger_name"])
+    passengerAttrList.append(myself["passenger_id_type_code"])
+    passengerAttrList.append(myself["passenger_id_no"])
+    passengerAttrList.append(myself["mobile_no"])
+    passengerAttrList.append("N")
 
     # "oldPassengerStr": "张三,1,身份证号码,1_",
     oldPassengerAttrList = []
-    oldPassengerAttrList.append[myself["passenger_name"]]
-    oldPassengerAttrList.append[myself["passenger_id_type_code"]]
-    oldPassengerAttrList.append[myself["passenger_id_no"]]
-    oldPassengerAttrList.append[myself["1_"]]
+    oldPassengerAttrList.append(myself["passenger_name"])
+    oldPassengerAttrList.append(myself["passenger_id_type_code"])
+    oldPassengerAttrList.append(myself["passenger_id_no"])
+    oldPassengerAttrList.append("1_")
 
     postData = {
         "passengerTicketStr": ",".join(passengerAttrList),
@@ -404,6 +434,12 @@ def confirmSingleForQueue(browser, passengerInfo, train):
     retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/confirmPassenger/confirmSingleForQueue", 
             parse.urlencode(postData))
     logging.info("retCode:[{}]".format(retCode))
+    if retCode == 200:
+        try:
+            result = json.loads(retData.decode("utf-8"))
+            logging.info("验证抢票队列: [{}]".format(result))
+        except:
+            pass
 
 """
 GET https://kyfw.12306.cn/otn/confirmPassenger/queryOrderWaitTime
@@ -428,22 +464,52 @@ def getMillSeconds():
     return str(millSec).split(".")[0]
 
 def queryOrderWaitTime(browser):
-    millSec = getMillSeconds()
+    endQ = False
+    while not endQ:
+        millSec = getMillSeconds()
+        data = {
+            "random": millSec,
+            "tourFlag": "dc",
+            "_json_att": "",
+            "REPEAT_SUBMIT_TOKEN": browser.tokenParams["globalRepeatSubmitToken"],
+        }
+        retCode, retData = browser.doGET("https://kyfw.12306.cn/otn/confirmPassenger/queryOrderWaitTime", 
+                parse.urlencode(data))
+        logging.info("retCode:[{}]".format(retCode))
+        if retCode == 200:
+            try:
+                result = json.loads(retData.decode("utf-8"))
+                logging.info("队列号: [{}]".format(result))
+                if result["data"]["count"] == 0:
+                    endQ = True
+                    browser.tokenParams["orderSequence_no"] = result["data"]["orderId"]
+            except:
+                pass
+        time.sleep(3)
+
+def resultOrderForDcQueue(browser):
+    logging.info("查询订单状态:")
+    if browser.tokenParams["orderSequence_no"] == "":
+        logging.info("未买到票")
+        return
     data = {
-        "random": millSec,
-        "tourFlag": "dc",
+        "orderSequence_no": browser.tokenParams["orderSequence_no"],
         "_json_att": "",
         "REPEAT_SUBMIT_TOKEN": browser.tokenParams["globalRepeatSubmitToken"],
     }
-    retCode, retData = browser.doGET("https://kyfw.12306.cn/otn/confirmPassenger/queryOrderWaitTime", 
+    retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/confirmPassenger/resultOrderForDcQueue", 
             parse.urlencode(data))
     logging.info("retCode:[{}]".format(retCode))
-
-def resultOrderForDcQueue(browser):
-    pass
+    if retCode == 200:
+        try:
+            result = json.loads(retData.decode("utf-8"))
+            logging.info("订单: [{}]".format(result))
+        except:
+            pass
 
 
 my12306 = My12306()
+my12306.getStartPage()
 my12306.checkCaptcha()
 my12306.checkUser(myInfo.user, myInfo.passwd)
 my12306.doLogin()
@@ -459,4 +525,4 @@ checkOrderInfo(my12306, passengerInfo)
 getQueueCount(my12306, trainInfo)
 confirmSingleForQueue(my12306, passengerInfo, trainInfo)
 queryOrderWaitTime(my12306)
-queryOrderWaitTime(my12306)
+resultOrderForDcQueue(my12306)
