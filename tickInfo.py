@@ -200,18 +200,25 @@ def submitOrderRequest(browser, train):
 POST initDc https://kyfw.12306.cn/otn/confirmPassenger/initDc
 _json_att:
 响应信息里提取:  var globalRepeatSubmitToken = '41ccc1848d24018ea59ea2534dcb6ef6';
+'key_check_isChange':'8826E8156DC5DFA8352ECDEF23F70EB4B71710F26D47E691207507E7'
 """
 def getSubmitToken(browser):
     # browser.doGET("https://kyfw.12306.cn/otn/index/initMy12306")
     browser.headers["Referer"] = "https://kyfw.12306.cn/otn/leftTicket/init"
     data = {"_json_att": ""}
+    headers = browser.headers
+    headers["Content-Type"] = "application/x-www-form-urlencoded"
     retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/confirmPassenger/initDc", parse.urlencode(data))
     if retCode == 200:
         html = retData.decode("utf-8")
         logging.debug(html)
         matchs = re.findall(r"globalRepeatSubmitToken\s+=\s+'(\w+)'", html)
         logging.debug(matchs)
-        browser.token = matchs[0] if matchs else ""
+        browser.tokenParams["globalRepeatSubmitToken"] = matchs[0] if matchs else ""
+
+        matchs = re.findall(r"'key_check_isChange'\s*:\s*'(\w+)'", html)
+        logging.debug(matchs)
+        browser.tokenParams["key_check_isChange"] = matchs[0] if matchs else ""
 
 """
 POST 获取乘车人信息: https://kyfw.12306.cn/otn/confirmPassenger/getPassengerDTOs
@@ -236,7 +243,7 @@ REPEAT_SUBMIT_TOKEN:41ccc1848d24018ea59ea2534dcb6ef6
 def getPassengerInfo(browser):
     postData = {
         "_json_att": "",
-        "REPEAT_SUBMIT_TOKEN": browser.token,
+        "REPEAT_SUBMIT_TOKEN": browser.tokenParams["globalRepeatSubmitToken"],
     }
     ok = False
     while not ok:
@@ -297,7 +304,7 @@ def checkOrderInfo(browser, passengerInfo):
         "randCode": "",
         "whatsSelect": "1",
         "_json_att": "",
-        "REPEAT_SUBMIT_TOKEN": browser.token,
+        "REPEAT_SUBMIT_TOKEN": browser.tokenParams["globalRepeatSubmitToken"],
     }
     retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/confirmPassenger/checkOrderInfo", 
             parse.urlencode(postData))
@@ -331,7 +338,7 @@ def getQueueCount(browser, train):
         "purpose_codes": "00",
         "train_location": "Q9",
         "_json_att": "",
-        "REPEAT_SUBMIT_TOKEN": browser.token,
+        "REPEAT_SUBMIT_TOKEN": browser.tokenParams["globalRepeatSubmitToken"],
     }
     retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/confirmPassenger/getQueueCount", 
             parse.urlencode(postData))
@@ -392,7 +399,7 @@ def confirmSingleForQueue(browser, passengerInfo, train):
         "roomType": "00",
         "dwAll": "N",
         "_json_att": "",
-        "REPEAT_SUBMIT_TOKEN": browser.token,
+        "REPEAT_SUBMIT_TOKEN": browser.tokenParams["globalRepeatSubmitToken"],
     }
     retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/confirmPassenger/confirmSingleForQueue", 
             parse.urlencode(postData))
@@ -426,7 +433,7 @@ def queryOrderWaitTime(browser):
         "random": millSec,
         "tourFlag": "dc",
         "_json_att": "",
-        "REPEAT_SUBMIT_TOKEN": browser.token,
+        "REPEAT_SUBMIT_TOKEN": browser.tokenParams["globalRepeatSubmitToken"],
     }
     retCode, retData = browser.doGET("https://kyfw.12306.cn/otn/confirmPassenger/queryOrderWaitTime", 
             parse.urlencode(data))
@@ -438,7 +445,8 @@ def resultOrderForDcQueue(browser):
 
 my12306 = My12306()
 my12306.checkCaptcha()
-my12306.doLogin(myInfo.user, myInfo.passwd)
+my12306.checkUser(myInfo.user, myInfo.passwd)
+my12306.doLogin()
 
 trainInfo = getTrainInfo(my12306)
 logging.debug(trainInfo)
