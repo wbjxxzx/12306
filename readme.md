@@ -26,11 +26,17 @@ rand:sjrand
 >8张图片模型 67*67 间隔为 5px
 
 |png|png|png|png|
+---
 |png|png|png|png|
+---
 
 >各图片左上角对应坐标
+
+
 5,5  77,5  149,5  221,5
+---
 5,77 77,77 149,77 221,77
+---
 
 返回json:
 >{'result_message': '验证码校验成功', 'result_code': '4'}
