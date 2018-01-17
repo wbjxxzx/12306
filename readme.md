@@ -24,15 +24,35 @@ rand:sjrand
 
 **answer** 后跟图片里的坐标点
 8张图片模型 67*67 间隔为 5px
-|-|-|-|-|
-|:-:|:-:|:-:|:-:|
-|png|png|png|png|          
-|png|png|png|png|
+<table>
+    <tr>
+        <td>png</td>
+        <td>png</td>
+        <td>png</td>
+        <td>png</td>
+    </tr>
+    <tr>
+        <td>png</td>
+        <td>png</td>
+        <td>png</td>
+        <td>png</td>
+    </tr>
+</table>
 各图片左上角对应坐标
-|-|-|-|-|
-|:-:|:-:|:-:|:-:|
-|5,5|77,5|149,5|221,5|
-|5,77|77,77|149,77|221,77|
+<table>
+    <tr>
+        <td>5,5</td>
+        <td>77,5</td>
+        <td>149,5</td>
+        <td>221,5</td>
+    </tr>
+    <tr>
+        <td>5,77</td>
+        <td>77,77</td>
+        <td>149,77</td>
+        <td>221,77</td>
+    </tr>
+</table>
 
 返回json:
 >{'result_message': '验证码校验成功', 'result_code': '4'}
