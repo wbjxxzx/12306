@@ -453,6 +453,9 @@ def queryOrderWaitTime(browser):
                 pass
         time.sleep(3)
 
+"""
+验证返回结果里的 'data':{'submitStatus': False}
+"""
 def resultOrderForDcQueue(browser):
     logger.info("查询订单状态:")
     if browser.tokenParams["orderSequence_no"] == "":
