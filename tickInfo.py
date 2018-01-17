@@ -6,23 +6,9 @@ from datetime import datetime
 from pprint import pprint
 import sys
 import json, re, time
-from login import My12306
+from login import My12306, logger
 import myInfo
-import logging
 
-logger = logging.getLogger("")
-formatter = logging.Formatter("%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s")
-fileHandler = logging.FileHandler("12306.log")
-fileHandler.setFormatter(formatter)
-fileHandler.setLevel(logging.DEBUG)
-
-console = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter("%(name)-10s: %(levelname)-8s %(message)s")
-console.setFormatter(formatter)
-console.setLevel(logging.INFO)
-
-logger.addHandler(fileHandler)
-logger.addHandler(console)
 
 def getStationName():
     stationVersion = 1.9044
@@ -150,7 +136,7 @@ def getTrainInfo2():
                     # print(v, end=" ")
 
 def getTrainInfo(browser):
-    destDat = "2018-01-23"
+    destDat = "2018-01-20"
     ticketData = parse.urlencode([
         ("leftTicketDTO.train_date",   destDat),
         ("leftTicketDTO.from_station", "GZQ"),
@@ -166,7 +152,7 @@ def getTrainInfo(browser):
         try:
             trainData = json.loads(retData.decode("utf-8"))
             ok = True
-            wantTrains = ["G296"]
+            wantTrains = ["G1136"]
             trains = list(filter(lambda x:x.split("|")[3] in wantTrains, trainData["data"]["result"]))
             return {"data": {"result": trains} }
         except:
@@ -204,12 +190,13 @@ def checkUser(browser):
                 logger.info("验证通过，用户已登录")
             else:
                 logger.info("登陆信息过期，请重新登录")
+                sys.exit()
         except:
             pass
 
 def submitOrderRequest(browser, train):
     logger.info("确认购票信息...")
-    destDate = "2018-01-23"
+    destDate = "2018-01-20"
     back_date = datetime.strftime(datetime.now(), "%Y-%m-%d")
     wantTrainInfo = train["data"]["result"][0].split("|")
     logger.info("成功获取车次: {}".format(wantTrainInfo))
@@ -313,10 +300,13 @@ REPEAT_SUBMIT_TOKEN:41ccc1848d24018ea59ea2534dcb6ef6
 {"ifShowPassCode":"N","canChooseBeds":"N","canChooseSeats":"Y","choose_Seats":"O9M",
 "isCanChooseMid":"N","ifShowPassCodeTime":"1","submitStatus":true,"smokeStr":""},
 "messages":[],"validateMessages":{}}
-[{'messages': [], 'validateMessages': {}, 'data': {'ifShowPassCodeTime': '2423', 'smokeStr': '', 
+{'messages': [], 'validateMessages': {}, 'data': {'ifShowPassCodeTime': '2423', 'smokeStr': '', 
 'ifShowPassCode': 'N', 'canChooseSeats': 'Y', 'submitStatus': True, 
 'canChooseBeds': 'N', 'isCanChooseMid': 'N', 'choose_Seats': 'M9'}, 
-'status': True, 'validateMessagesShowId': '_validatorMessage', 'httpstatus': 200}]
+'status': True, 'validateMessagesShowId': '_validatorMessage', 'httpstatus': 200}
+{'validateMessagesShowId': '_validatorMessage', 'status': True, 'data': 
+{'submitStatus': False, 'checkSeatNum': True, 'errMsg': '您选择了1位乘车人，但本次列车二等座仅剩0张。'}, 
+'messages': [], 'httpstatus': 200, 'validateMessages': {}}
 """
 def checkOrderInfo(browser, passengerInfo):
     myself = passengerInfo["data"]["normal_passengers"][0]
@@ -356,6 +346,15 @@ def checkOrderInfo(browser, passengerInfo):
         try:
             result = json.loads(retData.decode("utf-8"))
             logger.info("返回车次座位信息: [{}]".format(result))
+            flag = result["status"]
+            if (isinstance(flag, str)   and flag.upper() == "TRUE") or \
+                (isinstance(flag, bool) and flag):
+                if "errMsg" in result["data"]:
+                    logger.info("座位信息: [{}]".format(result["data"]["errMsg"]))
+                else:
+                    logger.info("有满足需要的票: {}".format(result["data"]))
+            else:
+                logger.info("座位信息获取失败: [{}]".format(result["message"]))
         except:
             pass
 
@@ -382,27 +381,34 @@ REPEAT_SUBMIT_TOKEN:41ccc1848d24018ea59ea2534dcb6ef6
 """
 def getQueueCount(browser, train):
     wantTrainInfo = train["data"]["result"][0].split("|")
-    train_date = datetime.strptime(wantTrainInfo[13], "%Y%m%d").strftime("%a %b %d %Y %T")+" GMT+0800 (中国标准时间)"
+    logger.info("准备进入排队...")
+    train_date = datetime.strptime(wantTrainInfo[13], "%Y%m%d").strftime("%a+%b+%d+%Y+") + \
+        parse.quote("00:00:00") + "+" + parse.quote("GMT+0800") + "+(" + \
+        parse.quote("中国标准时间") + ")"
+
     postData = {
-        "train_date": train_date,
         "train_no": wantTrainInfo[2],
         "stationTrainCode": wantTrainInfo[3],
         "seatType": "O",
         "fromStationTelecode": wantTrainInfo[6],
         "toStationTelecode": wantTrainInfo[7],
-        "leftTicket": wantTrainInfo[12],
         "purpose_codes": "00",
         "train_location": wantTrainInfo[15],
         "_json_att": "",
         "REPEAT_SUBMIT_TOKEN": browser.tokenParams["globalRepeatSubmitToken"],
     }
+    postData = parse.urlencode(postData) + "&" + "train_date=" + train_date + "&" + \
+        "leftTicket=" + wantTrainInfo[12]
     retCode, retData = browser.doPOST("https://kyfw.12306.cn/otn/confirmPassenger/getQueueCount", 
-            parse.urlencode(postData))
+             postData)
     logger.info("retCode:[{}]".format(retCode))
     if retCode == 200:
         try:
             result = json.loads(retData.decode("utf-8"))
-            if isinstance(result["status"], str) and result["status"].upper() == "TRUE":
+            flag = result["status"]
+            if isinstance(flag, str) and flag.upper() == "TRUE":
+                logger.info("抢票队列: [{}]".format(result))
+            elif isinstance(flag, bool) and flag:
                 logger.info("抢票队列: [{}]".format(result))
             else:
                 logger.info("抢票失败: [{}]".format(result["message"]))
@@ -429,6 +435,7 @@ _json_att:
 REPEAT_SUBMIT_TOKEN:41ccc1848d24018ea59ea2534dcb6ef6
 """
 def confirmSingleForQueue(browser, passengerInfo, train):
+    logger.info("验证抢票队列...")
     wantTrainInfo = train["data"]["result"][0].split("|")
     myself = passengerInfo["data"]["normal_passengers"][0]
     # "passengerTicketStr": "O,0,1,张三,1,身份证号码,电话号码,N",
@@ -455,9 +462,9 @@ def confirmSingleForQueue(browser, passengerInfo, train):
         "randCode": "",
         "purpose_codes": "00",
         "whatsSelect": "1",
-        "key_check_isChange": "",
+        "key_check_isChange": browser.tokenParams["key_check_isChange"],
         "leftTicketStr": wantTrainInfo[12],
-        "train_location": wantTrainInfo[13],
+        "train_location": wantTrainInfo[15],
         "choose_seats": "",
         "seatDetailType": "000",
         "whatsSelect": "1",
@@ -472,7 +479,14 @@ def confirmSingleForQueue(browser, passengerInfo, train):
     if retCode == 200:
         try:
             result = json.loads(retData.decode("utf-8"))
-            logger.info("验证抢票队列: [{}]".format(result))
+            logger.info("确认购买: [{}]".format(result))
+            flag = result["status"]
+            if isinstance(flag, str) and flag.upper() == "TRUE":
+                logger.info("进入队列: [{}]".format(result))
+            elif isinstance(flag, bool) and flag:
+                logger.info("进入队列: [{}]".format(result))
+            else:
+                logger.info("进入队列失败: [{}]".format(result["message"]))
         except:
             pass
 
