@@ -326,7 +326,7 @@ REPEAT_SUBMIT_TOKEN:41ccc1848d24018ea59ea2534dcb6ef6
 返回json:
 >{"validateMessagesShowId":"_validatorMessage","status":true,"httpstatus":200,"data":{"submitStatus":true},"messages":[],"validateMessages":{}}
 
-检查 result["status"] 是否为 true
+检查 result["data"]["submitStatus"] 是否为 true
 
 ### 流程完毕
 
