@@ -1,0 +1,9 @@
+myInfo.py
+*.log
+*.txt
+*.js
+*.pdf
+*.bak
+*.html
+*.json
+__pycache__
