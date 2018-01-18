@@ -77,7 +77,8 @@ class My12306(object):
             "7": (Point(170,210), Point(90, 140)),
             "8": (Point(250,280), Point(90, 140)),
         }
-
+    
+    # http.client.IncompleteRead: IncompleteRead(20241 bytes read, 2514 more expected)
     def doGET(self, url, data=None, headers=None):
         if data is not None: 
             url = url + "?" + data
@@ -85,16 +86,22 @@ class My12306(object):
         logger.info("GET: [{}]".format(url))
         if headers is None: headers = self.headers
         req = request.Request(url, headers=headers)
-        with My12306._opener.open(req) as f:
-            return f.status, f.read()
+        try:
+            with My12306._opener.open(req) as f:
+                return f.status, f.read()
+        except:
+            return 400, iter("")
 
     def doPOST(self, url, data, headers=None):
         if headers is None: headers = self.headers
         req = request.Request(url, headers=headers)
         logger.debug("cookie: [{}]".format(self._cj))
         logger.info("POST: [{}] ,data [{}]".format(url, data))
-        with My12306._opener.open(req, data=data.encode("utf-8")) as f:
-            return f.status, f.read()
+        try:
+            with My12306._opener.open(req, data=data.encode("utf-8")) as f:
+                return f.status, f.read()
+        except:
+            return 400, iter("")
     
     # 一切从这里开始
     def getStartPage(self):
