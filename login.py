@@ -141,7 +141,7 @@ class My12306(object):
                 if re.match(r"[1-8](?:,[1-8])*", posInput):
                     validInput = True
         posList = []
-        for pos in posInput.strip().rstrip(",").split(","):
+        for pos in posInput.strip().strip(",").split(","):
             posList.append(random.randint(self._posMap[pos][0].a, self._posMap[pos][0].b))
             posList.append(random.randint(self._posMap[pos][1].a, self._posMap[pos][1].b)) 
         return ",".join([str(x) for x in posList])

@@ -201,9 +201,26 @@ def getPassengerInfo(browser, passenger):
                 if item["passenger_name"] == passenger:
                     return item
             logger.info("[{}]不在乘客名单!".format(passenger))
-            sys.exit()
+            return choosePassenger(passengerData["data"]["normal_passengers"])
         except:
             raise "获取乘客信息失败"
+
+def choosePassenger(passengers):
+    for idx, v in enumerate(passengers):
+        print("[{}] {}".format(idx, v["passenger_name"]))
+    validInput = False
+    while not validInput:
+        pssengerIdx = input("请输入乘客编号,以逗号分隔\n默认为[0]号乘客:\n")
+        if len(pssengerIdx) == 0 :
+            pssengerIdx = "0"
+            validInput = True
+        else:
+            if re.match(r"[0-9]*(?:,[0-9]*)*", pssengerIdx):
+                validInput = True
+    pssengerList = []
+    for idx in pssengerIdx.strip().strip(",").split(","):
+        pssengerList.append(passengers[int(idx)])
+    return pssengerList
 
 """
 POST 订单信息: https://kyfw.12306.cn/otn/confirmPassenger/checkOrderInfo
