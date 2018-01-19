@@ -129,6 +129,7 @@ GET https://kyfw.12306.cn/otn/leftTicket/queryZ
 "leftTicketDTO.to_station":   "WHN",
 "purpose_codes":              "ADULT"
 
+**purpose_codes=0X00** 代表学生票
 返回的一坨json里有车次列表:
 几个对应关系(人话 索引):
 >车次 3  发车时间 8 到达 9 历时 10 发车日期 13 是否可预订 11
