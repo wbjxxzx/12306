@@ -527,9 +527,12 @@ if "__main__" == __name__:
         for train in trains:
             checkUser(my12306)
             submitOrderRequest(my12306, train, **myInfo.travelInfo)
-            getSubmitToken(my12306)
+
+            if browser.tokenParams["globalRepeatSubmitToken"] == "":
+                getSubmitToken(my12306)
+                
             if not validPassenger:
-                validPassenger, passengers = getPassengerInfo(my12306, myInfo.passengers)
+                validPassenger, passengers = getPassengerInfo(my12306, passengers)
             logger.debug(passengers)
 
             isAcceptOrder = checkOrderInfo(my12306, passengers)
