@@ -3,15 +3,23 @@
 
 from pprint import pprint
 from urllib import request, parse
-from myLogger import logger
 import json, sys
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+def formatChinese(data, width=16):
+    count = 0
+    for s in data:
+        if ord(s) > 127:
+            count += 1
+    return "{:^{wd}}".format(data, wd=width-count)
 
 def getStationName():
     stationVersion = 1.9044
     url = "https://kyfw.12306.cn/otn/resources/js/framework/station_name.js"
     reqData = parse.urlencode([("station_version", stationVersion)])
     url = url + "?" + reqData
-    logger.debug(url)
+    logging.debug(url)
     req = request.Request(url)
     with request.urlopen(req) as f:
         names = f.read()
@@ -19,17 +27,30 @@ def getStationName():
             fw.write(names)
         
         itemsTMP = names.decode('utf-8').split("'")
-        formatStr = "{:<16} {:<16} {:<16} {:<16} {:<16} {:<16}"
+        formatStr = "{}|{}|{}|{}|{}|{}"
         if len(itemsTMP) == 3:
-            with open("stationTable.txt", "wt") as fw:
+            with open("stationTable.txt", "wt", encoding="utf-8") as fw:
                 items = itemsTMP[1].split('@')
-                logger.debug(formatStr.format("代号","中文名","车站代码","中文拼音","拼音首字母","序号"))
-                fw.write(formatStr.format("代号","中文名","车站代码","中文拼音","拼音首字母","序号"))
+                logging.debug(formatStr.format(
+                    formatChinese("代号"),
+                    formatChinese("中文名"),
+                    formatChinese("车站代码"),
+                    formatChinese("中文拼音"),
+                    formatChinese("拼音首字母"),
+                    formatChinese("序号")))
+                fw.write(formatStr.format(
+                    formatChinese("代号"),
+                    formatChinese("中文名"),
+                    formatChinese("车站代码"),
+                    formatChinese("中文拼音"),
+                    formatChinese("拼音首字母"),
+                    formatChinese("序号")))
+                fw.write("\n")
                 for item in items:
-                    if item == "": continue
+                    if len(item) == 0: continue
                     info = item.split("|")
-                    logger.debug(formatStr.format(*info))
-                    fw.write(formatStr.format(*info))
+                    logging.debug(formatStr.format( *list( map( formatChinese, info) ) ) )
+                    fw.write(formatStr.format(*list(map(formatChinese, info))))
                     fw.write("\n")
 
 def getTrainInfo2():
@@ -71,3 +92,6 @@ def getTrainInfo2():
                 for i, v in enumerate(item.split("|")):
                     logger.debug("[{}] {}".format(i, v))
                     # print(v, end=" ")
+
+if "__main__" == __name__:
+    getStationName()

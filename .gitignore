@@ -1,5 +1,5 @@
 myInfo.py
-*.log
+*.log*
 *.txt
 *.js
 *.pdf
@@ -7,3 +7,4 @@ myInfo.py
 *.html
 *.json
 __pycache__
+old

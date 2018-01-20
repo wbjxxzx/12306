@@ -209,10 +209,11 @@ class My12306(object):
                     result = json.loads(retData.decode("utf-8"))
                     if result["result_code"] == 0:
                         logger.info("用户名和密码验证通过")
+                        ok = True
                         self.tokenParams["tk"] = result["uamtk"]
                     else:
-                        return result["result_message"]
-                    ok = True
+                        logger.info(result["result_message"])
+                        sys.exit(1)
                 except json.decoder.JSONDecodeError as e:
                     logger.debug("json parse failed: {}".format(e))
                     time.sleep(2)
@@ -243,34 +244,42 @@ class My12306(object):
 
         logger.info("尝试 uamtk 验证...")
         headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8"
-        retCode, retData = self.doPOST("https://kyfw.12306.cn/passport/web/auth/uamtk", 
-            parse.urlencode({"appid": "otn"}), headers=headers)
-        if retCode == 200:
-            logger.debug("retCode:[{}], retData:[{}]".format(retCode, retData.decode("utf-8")))
-            try:
-                result = json.loads(retData.decode("utf-8"))
-                if result["result_code"] == 0:
-                    logger.info("uamtk 验证通过")
-                    self.tokenParams["newapptk"] = result["newapptk"]
-                else:
-                    return result["result_message"]
-            except:
-                pass
+        
+        ok = False
+        while not ok:
+            retCode, retData = self.doPOST("https://kyfw.12306.cn/passport/web/auth/uamtk", 
+                parse.urlencode({"appid": "otn"}), headers=headers)
+            if retCode == 200:
+                logger.debug("retCode:[{}], retData:[{}]".format(retCode, retData.decode("utf-8")))
+                try:
+                    result = json.loads(retData.decode("utf-8"))
+                    if result["result_code"] == 0:
+                        logger.info("uamtk 验证通过")
+                        ok = True
+                        self.tokenParams["newapptk"] = result["newapptk"]
+                    else:
+                        return result["result_message"]
+                except:
+                    pass
 
         logger.info("尝试 uamauthclient 验证...")
-        retCode, retData = self.doPOST("https://kyfw.12306.cn/otn/uamauthclient", 
-            parse.urlencode({"tk": self.tokenParams["newapptk"]}), headers=headers)
-        if retCode == 200:
-            logger.debug("retCode:[{}], retData:[{}]".format(retCode, retData.decode("utf-8")))
-            try:
-                result = json.loads(retData.decode("utf-8"))
-                if result["result_code"] == 0:
-                    logger.info("uamauthclient 验证通过")
-                    logger.info("成功登录12306, 用户名[{}], 可以买票了".format(result["username"]))
-                else:
-                    return result["result_message"]
-            except:
-                pass
+        
+        ok = False
+        while not ok:
+            retCode, retData = self.doPOST("https://kyfw.12306.cn/otn/uamauthclient", 
+                parse.urlencode({"tk": self.tokenParams["newapptk"]}), headers=headers)
+            if retCode == 200:
+                logger.debug("retCode:[{}], retData:[{}]".format(retCode, retData.decode("utf-8")))
+                try:
+                    result = json.loads(retData.decode("utf-8"))
+                    if result["result_code"] == 0:
+                        logger.info("uamauthclient 验证通过")
+                        ok = True
+                        logger.info("成功登录12306, 用户名[{}], 可以买票了".format(result["username"]))
+                    else:
+                        return result["result_message"]
+                except:
+                    pass
 
         self.afterLogin()
 
@@ -282,9 +291,11 @@ class My12306(object):
         
         headers["Referer"] = "https://kyfw.12306.cn/otn/index/initMy12306"
         retCode, retData = self.doGET("https://kyfw.12306.cn/otn/leftTicket/init", headers=headers)
-        logger.debug("retCode:[{}], retData:[{}]".format(retCode, retData.decode("utf-8")))
-        with open("initMy12306.html", "wb") as fw:
-            fw.write(retData)
+        logger.debug("retCode:[{}]".format(retCode))
+        if retCode == 200:
+            with open("initMy12306.html", "wb") as fw:
+                fw.write(retData)
+        
 
         headers["Referer"] = "https://kyfw.12306.cn/otn/leftTicket/init"
         self.doGET("https://kyfw.12306.cn/otn/passcodeNew/getPassCodeNew",

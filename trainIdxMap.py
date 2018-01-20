@@ -54,6 +54,7 @@ stationTrainCode = 3
 fromStationTelecode = 6
 toStationTelecode = 7
 bookable = 11
+leftTicket = 12
 train_date = 13
 train_location = 15
 seat_1 = 31
