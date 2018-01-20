@@ -29,6 +29,9 @@ def getTrainInfo(browser, wantTrains=None, **travelInfo):
     if "train_date" not in travelInfo or travelInfo["train_date"] == "":
         travelInfo["train_date"] = datetime.strftime(datetime.now() + timedelta(days=3), "%Y-%m-%d")
         logger.info("未填写查票日期，采用默认值(3天后): {}".format(travelInfo["train_date"]))
+    if len(travelInfo["train_date"]) != 10:
+        logger.error("wrong train_date format:{}, wanted: yyyy-mm-dd(2018-01-01).".format(travelInfo["train_date"]))
+        sys.exit(1)
     ticketData = parse.urlencode([
         ("leftTicketDTO.train_date",   travelInfo["train_date"]),
         ("leftTicketDTO.from_station", travelInfo["from_station"]),
@@ -43,28 +46,30 @@ def getTrainInfo(browser, wantTrains=None, **travelInfo):
         logger.info("retCode:[{}]".format(retCode))
         try:
             trainData = json.loads(retData.decode("utf-8"))
-            ok = True
+            logger.debug(trainData)
             trains = filterTrainInfo(trainData["data"]["result"], wantTrains)
             if len(trains) == 0:
                 logger.info("没有满足条件的车次，5秒后重新查询")
                 ok = False
                 time.sleep(5)
             else:
+                ok = True
                 return trains
         except:
             logger.info("服务器忙，5秒后重新查询")
             time.sleep(5)
 
 def filterTrainInfo(trains, wantTrains):
+    logger.info("查询需要的车次...")
     chosedTrains = []
     for item in trains:
-        for v in item.split("|"):
-            if v[trainIdxMap.bookable] == "Y" and (not v[trainIdxMap.seat_2].strip().startswith(("无","-"))):
-                chosedTrains.append(item)
+        vals = item.split("|")
+        if vals[trainIdxMap.bookable] == "Y" and (not vals[trainIdxMap.seat_2].strip().startswith(("无","-"))):
+            chosedTrains.append(item)
     if wantTrains is None:
         logger.info("未填写需要的车次，将采用全量查询")
-        return iter(chosedTrains)
-    return filter(lambda x:x.split("|")[trainIdxMap.stationTrainCode] in wantTrains, chosedTrains)
+        return chosedTrains
+    return list(filter(lambda x:x.split("|")[trainIdxMap.stationTrainCode] in wantTrains, chosedTrains))
 
 """
 POST 验证用户是否登陆: https://kyfw.12306.cn/otn/login/checkUser
@@ -521,7 +526,7 @@ if "__main__" == __name__:
     isGetTicket = False
     while not isGetTicket:
         trains = getTrainInfo(my12306, myInfo.wantTrains, **myInfo.travelInfo)
-        logger.debug(trainInfo)
+        logger.info("find trains:{}".format(trains))
         validPassenger, isAcceptOrder, isEnterQueue, isConfirmedQueue,  = False, False, False, False
         passengers = myInfo.passengers
         for train in trains:
@@ -530,7 +535,7 @@ if "__main__" == __name__:
 
             if browser.tokenParams["globalRepeatSubmitToken"] == "":
                 getSubmitToken(my12306)
-                
+
             if not validPassenger:
                 validPassenger, passengers = getPassengerInfo(my12306, passengers)
             logger.debug(passengers)
