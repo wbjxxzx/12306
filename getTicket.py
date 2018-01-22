@@ -187,12 +187,12 @@ def getPassengerInfo(browser, passengers):
         try:
             passengerData = json.loads(retData.decode("utf-8"))
             logger.debug("passengerData:{}".format(passengerData))
-            ok = True
             logger.info("查找[{}]信息...".format(passengers))
             finded = []
             for item in passengerData["data"]["normal_passengers"]:
+                logger.debug(item)
                 if item["passenger_name"] in passengers:
-                    finded.apend(item)
+                    finded.append(item)
             if len(finded) == 0:
                 logger.info("[{}]不在乘客名单!".format(passengers))
                 return choosePassenger(passengerData["data"]["normal_passengers"])
@@ -204,7 +204,7 @@ def getPassengerInfo(browser, passengers):
 
 def choosePassenger(passengers):
     for idx, v in enumerate(passengers):
-        fmt.Println("[{}] {}".format(idx, v["passenger_name"]))
+        print("[{}] {}".format(idx, v["passenger_name"]))
     validInput = False
     while not validInput:
         pssengerIdx = input("请输入乘客编号,以逗号分隔\n默认为[0]号乘客:\n")
@@ -489,6 +489,8 @@ def resultOrderForDcQueue(browser):
     if browser.tokenParams["orderSequence_no"] == "":
         logger.info("未买到票")
         return False
+    if browser.tokenParams["orderSequence_no"] is None:
+        return True
     data = {
         "orderSequence_no": browser.tokenParams["orderSequence_no"],
         "_json_att": "",
