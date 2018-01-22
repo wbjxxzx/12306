@@ -550,4 +550,5 @@ if "__main__" == __name__:
                     if isConfirmedQueue:
                         queryOrderWaitTime(my12306)
                         if(resultOrderForDcQueue(my12306)):
+                            isGetTicket = True
                             sys.exit(0)
