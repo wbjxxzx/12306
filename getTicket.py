@@ -525,11 +525,11 @@ if "__main__" == __name__:
     my12306.checkUser(myInfo.user, myInfo.passwd)
     my12306.doLogin()
 
-    isGetTicket = False
+    isGetTicket, validPassenger = False, False
     while not isGetTicket:
         trains = getTrainInfo(my12306, myInfo.wantTrains, **myInfo.travelInfo)
         logger.info("find trains:{}".format(trains))
-        validPassenger, isAcceptOrder, isEnterQueue, isConfirmedQueue,  = False, False, False, False
+        isAcceptOrder, isEnterQueue, isConfirmedQueue,  = False, False, False
         passengers = myInfo.passengers
         for train in trains:
             checkUser(my12306)
