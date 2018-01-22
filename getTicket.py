@@ -204,7 +204,7 @@ def getPassengerInfo(browser, passengers):
 
 def choosePassenger(passengers):
     for idx, v in enumerate(passengers):
-        print("[{}] {}".format(idx, v["passenger_name"]))
+        fmt.Println("[{}] {}".format(idx, v["passenger_name"]))
     validInput = False
     while not validInput:
         pssengerIdx = input("请输入乘客编号,以逗号分隔\n默认为[0]号乘客:\n")
@@ -533,7 +533,7 @@ if "__main__" == __name__:
             checkUser(my12306)
             submitOrderRequest(my12306, train, **myInfo.travelInfo)
 
-            if browser.tokenParams["globalRepeatSubmitToken"] == "":
+            if my12306.tokenParams["globalRepeatSubmitToken"] == "":
                 getSubmitToken(my12306)
 
             if not validPassenger:
