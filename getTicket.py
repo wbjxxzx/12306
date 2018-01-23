@@ -95,7 +95,7 @@ def checkUser(browser):
                     return True
                 else:
                     logger.info("登陆信息过期，请重新登录")
-                    sys.exit(1)
+                    return False
             except:
                 pass
 
@@ -526,14 +526,14 @@ if "__main__" == __name__:
     my12306.checkUser(myInfo.user, myInfo.passwd)
     my12306.doLogin()
 
-    isGetTicket, validPassenger = False, False
-    while not isGetTicket:
+    isGetTicket, validPassenger, isLogin = False, False, True
+    while not isGetTicket and isLogin:
         trains = getTrainInfo(my12306, myInfo.wantTrains, **myInfo.travelInfo)
         logger.info("find trains:{}".format(trains))
         isAcceptOrder, isEnterQueue, isConfirmedQueue,  = False, False, False
         passengers = myInfo.passengers
         for train in trains:
-            checkUser(my12306)
+            isLogin = checkUser(my12306)
             submitOrderRequest(my12306, train, **myInfo.travelInfo)
 
             if my12306.tokenParams["globalRepeatSubmitToken"] == "":
@@ -550,6 +550,4 @@ if "__main__" == __name__:
                     isConfirmedQueue = confirmSingleForQueue(my12306, passengers, train, myInfo.travelInfo["wantSeatType"])
                     if isConfirmedQueue:
                         queryOrderWaitTime(my12306)
-                        if(resultOrderForDcQueue(my12306)):
-                            isGetTicket = True
-                            sys.exit(0)
+                        isGetTicket = resultOrderForDcQueue(my12306)
