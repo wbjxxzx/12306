@@ -67,7 +67,7 @@ def filterTrainInfo(trains, wantTrains):
         vals = item.split("|")
         if vals[trainIdxMap.bookable] == "Y" and (not vals[trainIdxMap.seat_2].strip().startswith(("无","-"))):
             chosedTrains.append(item)
-    if wantTrains is None:
+    if wantTrains is None or len(wantTrains)==0:
         logger.info("未填写需要的车次，将采用全量查询")
         return chosedTrains
     return list(filter(lambda x:x.split("|")[trainIdxMap.stationTrainCode] in wantTrains, chosedTrains))
