@@ -15,6 +15,7 @@ except ImportError:
         passwd = "123456"
         wantTrains = []
         passengers = [user]
+        # "M": "一等座","O": "二等座","1": "硬座","3": "硬卧","4": "软卧"
         travelInfo = {
             "wantSeatType": "O",
             "train_date": "",
@@ -326,7 +327,7 @@ train_location:Q9
 _json_att:
 REPEAT_SUBMIT_TOKEN:41ccc1848d24018ea59ea2534dcb6ef6
 """
-def getQueueCount(browser, train):
+def getQueueCount(browser, train, seatType="O"):
     wantTrainInfo = train.split("|")
     logger.info("准备进入排队...")
     train_date = datetime.strptime(wantTrainInfo[trainIdxMap.train_date], "%Y%m%d").strftime("%a+%b+%d+%Y+") + \
@@ -336,7 +337,7 @@ def getQueueCount(browser, train):
     postData = {
         "train_no": wantTrainInfo[trainIdxMap.train_no],
         "stationTrainCode": wantTrainInfo[trainIdxMap.stationTrainCode],
-        "seatType": "O",
+        "seatType": seatType,
         "fromStationTelecode": wantTrainInfo[trainIdxMap.fromStationTelecode],
         "toStationTelecode": wantTrainInfo[trainIdxMap.toStationTelecode],
         "purpose_codes": "00",
@@ -542,11 +543,11 @@ if "__main__" == __name__:
                 validPassenger, passengers = getPassengerInfo(my12306, passengers)
             logger.debug(passengers)
 
-            isAcceptOrder = checkOrderInfo(my12306, passengers)
+            isAcceptOrder = checkOrderInfo(my12306, passengers, myInfo.travelInfo["wantSeatType"])
             if isAcceptOrder:
-                isEnterQueue = getQueueCount(my12306, train)
+                isEnterQueue = getQueueCount(my12306, train, myInfo.travelInfo["wantSeatType"])
                 if isEnterQueue:
-                    isConfirmedQueue = confirmSingleForQueue(my12306, passengers, train)
+                    isConfirmedQueue = confirmSingleForQueue(my12306, passengers, train, myInfo.travelInfo["wantSeatType"])
                     if isConfirmedQueue:
                         queryOrderWaitTime(my12306)
                         if(resultOrderForDcQueue(my12306)):
