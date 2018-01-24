@@ -331,3 +331,28 @@ REPEAT_SUBMIT_TOKEN:41ccc1848d24018ea59ea2534dcb6ef6
 
 ### 流程完毕
 
+# 使用方式
+下载此 zip 文件，解压后在 getTicket.py 同级目录新建 myInfo.py，内容如下:
+
+```
+user = "zhangsan"
+passwd = "123456"
+
+# 预订车次 选填
+wantTrains = []
+
+# 乘客姓名 选填
+passengers = []
+
+# "M": "一等座","O": "二等座","1": "硬座","3": "硬卧","4": "软卧"
+# train_date 如: 2018-01-16
+travelInfo = {
+            "wantSeatType": "O",
+            "train_date": "2018-02-11",
+            "from_station": "GZQ",
+            "to_station": "WHN",
+            "query_from_station_name": "广州",
+            "query_to_station_name": "武汉",
+        }
+```
+from_station 和 to_station 为车站代号，可先运行一次 stationInfo.py 获得
