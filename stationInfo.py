@@ -15,7 +15,7 @@ def formatChinese(data, width=16):
     return "{:^{wd}}".format(data, wd=width-count)
 
 def getStationName():
-    stationVersion = 1.9044
+    stationVersion = 1.9087
     url = "https://kyfw.12306.cn/otn/resources/js/framework/station_name.js"
     reqData = parse.urlencode([("station_version", stationVersion)])
     url = url + "?" + reqData
